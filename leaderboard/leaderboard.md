@@ -1,6 +1,6 @@
 # 🏆 ONCO-SEG Lite - Leaderboard
 
-_Auto-generated from `docs/leaderboard.csv` - last updated 2026-11-21 15:18 UTC. Do not edit by hand._
+_Auto-generated from `docs/leaderboard.csv` - last updated 2026-11-21 16:59 UTC. Do not edit by hand._
 
 | Rank | Participant | Mean Dice | Δ Human Top | IoU | Lesion Dice | Specificity | Type | Architecture | Params | Date |
 |---:|---|---:|---:|---:|---:|---:|---|---|---:|---|
