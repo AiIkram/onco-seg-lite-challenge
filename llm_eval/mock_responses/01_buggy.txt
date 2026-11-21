@@ -1,0 +1,8 @@
+<plan>
+1. Load images and masks. 2. Train a small CNN. 3. Write predictions.csv.
+</plan>
+<code>
+import numpy as np
+import pandas as pd
+x = load_everything()  # NameError on purpose (tests the repair loop)
+</code>

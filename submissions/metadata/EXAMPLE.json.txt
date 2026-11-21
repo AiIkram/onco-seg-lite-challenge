@@ -1,0 +1,11 @@
+Copy this to submissions/metadata/<your_name>.json (same <your_name> as your .enc file):
+
+{
+  "model_type": "human",
+  "architecture": "TinyUNet-b16",
+  "params": 1942289,
+  "llm": ""
+}
+
+model_type: "human" | "llm-only" | "human+llm"
+llm: model name if one was used, e.g. "Claude Opus 4.7"

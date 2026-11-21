@@ -1,0 +1,21 @@
+{
+  "last_updated": "2026-11-21 15:18 UTC",
+  "entries": [
+    {
+      "team": "organiser-baseline",
+      "score": 0.7534,
+      "iou": "0.6925",
+      "lesion_dice": "0.7252",
+      "specificity": "0.8889",
+      "model_type": "baseline",
+      "architecture": "TinyUNet-b16",
+      "params": "1942289",
+      "llm": "",
+      "date": "2026-11-21",
+      "run_id": "baseline",
+      "n_submissions": 1,
+      "rank": 1,
+      "gap": "-"
+    }
+  ]
+}

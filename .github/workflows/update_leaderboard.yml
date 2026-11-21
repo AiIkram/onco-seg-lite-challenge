@@ -1,0 +1,38 @@
+name: Update Leaderboard
+
+# Re-renders leaderboard.md / leaderboard.json when an organiser edits
+# docs/leaderboard.csv by hand (e.g. to disqualify an entry), or on demand.
+# (Bot pushes from the scoring workflow already render, and GITHUB_TOKEN
+#  pushes do not trigger other workflows anyway.)
+on:
+  push:
+    branches: [main]
+    paths: ["docs/leaderboard.csv"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: leaderboard-write
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --quiet "pandas>=2.0"
+      - run: python competition/render_leaderboard.py
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add leaderboard/leaderboard.md docs/leaderboard.json
+          git diff --staged --quiet && echo "No changes" && exit 0
+          git commit -m "Re-render leaderboard"
+          git pull --rebase origin main
+          git push

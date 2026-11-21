@@ -1,0 +1,132 @@
+name: Score Submission
+
+# Runs with repository secrets on PRs from forks. SAFETY: the PR's code is never
+# checked out or executed - only the submitted .enc / .json blobs are read with
+# `git show`, and every script that runs comes from the default branch.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "submissions/**"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# One scoring job at a time -> no lost leaderboard writes
+concurrency:
+  group: leaderboard-write
+  cancel-in-progress: false
+
+env:
+  MAX_SUBMISSIONS: "1"                    # scored submissions allowed per GitHub user
+  DEADLINE_UTC: "2027-02-01T11:59:00Z"    # = 31 Jan 2027 23:59 AoE; later PRs are not scored
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout default branch (trusted code only)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install --quiet "numpy>=1.24" "pandas>=2.0" "cryptography>=41"
+
+      - name: Inspect PR files
+        id: inspect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/${REPO}/pulls/${PR}/files" --jq '.[] | "\(.status)\t\(.filename)"' > "$RUNNER_TEMP/files.tsv"
+          cat "$RUNNER_TEMP/files.tsv"
+          python scripts/ci_inspect_pr.py "$RUNNER_TEMP/files.tsv" "$RUNNER_TEMP/comment.md"
+
+      - name: Extract submission blobs (no checkout of PR code)
+        id: extract
+        if: steps.inspect.outputs.status == 'ok'
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          ENC: ${{ steps.inspect.outputs.enc }}
+          META: ${{ steps.inspect.outputs.meta }}
+        run: |
+          # report (.md) is only displayed in the PR diff; it is never parsed or executed
+          git fetch --no-tags origin "pull/${PR}/head:pr-head"
+          git show "pr-head:${ENC}" > "$RUNNER_TEMP/sub.enc"
+          SIZE=$(stat -c%s "$RUNNER_TEMP/sub.enc")
+          if [ "$SIZE" -gt 5000000 ]; then echo "File too large ($SIZE bytes)"; exit 1; fi
+          if [ -n "$META" ]; then git show "pr-head:${META}" | head -c 4096 > "$RUNNER_TEMP/meta.json"; fi
+
+      - name: Score
+        id: score
+        if: steps.inspect.outputs.status == 'ok'
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          USER_LOGIN: ${{ github.event.pull_request.user.login }}
+          PR: ${{ github.event.pull_request.number }}
+          NAME: ${{ steps.inspect.outputs.name }}
+          REPORT: ${{ steps.inspect.outputs.report }}
+        run: |
+          python scripts/ci_score.py \
+            --submission "$RUNNER_TEMP/sub.enc" \
+            --metadata "$RUNNER_TEMP/meta.json" \
+            --name "$NAME" --user "$USER_LOGIN" --pr "$PR" \
+            --max-submissions "$MAX_SUBMISSIONS" \
+            --deadline "$DEADLINE_UTC" \
+            --has-report "$REPORT" \
+            --comment-out "$RUNNER_TEMP/comment.md"
+
+      - name: Publish leaderboard
+        if: steps.score.outputs.status == 'ok'
+        env:
+          USER_LOGIN: ${{ github.event.pull_request.user.login }}
+          PR: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          python -m pip install --quiet "pandas>=2.0"
+          python competition/render_leaderboard.py
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/leaderboard.csv docs/leaderboard.json leaderboard/leaderboard.md
+          git commit -m "Leaderboard: ${USER_LOGIN} (PR #${PR})"
+          for i in 1 2 3 4 5; do
+            if git push origin "HEAD:${BRANCH}"; then echo "pushed"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"; sleep 3
+            git pull --rebase origin "${BRANCH}"
+          done
+          echo "Could not push leaderboard"; exit 1
+
+      - name: Comment on PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -s "$RUNNER_TEMP/comment.md" ]; then
+            gh pr comment "$PR" --repo "$REPO" --body-file "$RUNNER_TEMP/comment.md"
+          else
+            echo "No comment to post (organiser-side failure - check the logs above)."
+          fi
+
+      - name: Close PR after scoring (one final submission, evaluated once)
+        if: steps.score.outputs.status == 'ok' || steps.score.outputs.status == 'limit_reached' || steps.score.outputs.status == 'closed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: gh pr close "$PR" --repo "$REPO" || true
+
+      - name: Cleanup
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sub.enc" "$RUNNER_TEMP/meta.json"

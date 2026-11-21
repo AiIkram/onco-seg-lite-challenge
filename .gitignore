@@ -1,0 +1,35 @@
+# ---- NEVER COMMIT (challenge secrets) ----
+encryption/private_key.pem
+*.pem
+!encryption/public_key.pem
+data/private/
+data/raw/
+Dataset_BUSI_with_GT/
+*_decrypted.csv
+
+# Plain-text predictions: only the .enc goes in a PR
+submissions/*.csv
+starter_code/submissions/
+
+# Training artefacts
+starter_code/checkpoints/
+*.pt
+*.pth
+runs/
+wandb/
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+.env
+.DS_Store
+
+# local run log (goes in your report, not in the PR)
+starter_code/runs_log.csv
+
+# LLM evaluation: keep transcripts/summaries, not the sandbox copies of the data
+llm_eval/runs/*/sandbox/
+llm_eval/prompt.md

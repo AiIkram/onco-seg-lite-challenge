@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ONCO-SEG Lite – Leaderboard</title>
+  <link rel="stylesheet" href="leaderboard.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a class="back" href="index.html">← Challenge home</a>
+      <h1>🎗️ ONCO-SEG Lite Leaderboard</h1>
+      <p>Breast tumour segmentation in ultrasound · lightweight models (≤ 5M params) · metric: mean Dice</p>
+    </header>
+
+    <div class="stats">
+      <div><span id="statTeams">-</span><label>participants</label></div>
+      <div><span id="statSubs">-</span><label>scored submissions</label></div>
+      <div><span id="statBest">-</span><label>best mean Dice</label></div>
+      <div><span id="statHuman">-</span><label>best human</label></div>
+      <div><span id="statLLM">-</span><label>best LLM-only</label></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="searchBox" placeholder="Search participant, architecture, LLM, date…">
+      <select id="typeFilter">
+        <option value="">All model types</option>
+        <option value="human">Human</option>
+        <option value="llm-only">LLM only</option>
+        <option value="human+llm">Human + LLM</option>
+        <option value="baseline">Baseline</option>
+        <option value="unspecified">Unspecified</option>
+      </select>
+      <select id="dateFilter">
+        <option value="">All time</option>
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
+      <label class="check"><input type="checkbox" id="bestOnly" checked> Best per participant</label>
+      <button id="toggleColumns">Columns ▾</button>
+      <div id="columnMenu" class="column-menu hidden"></div>
+    </div>
+
+    <div id="leaderboardTable"><div class="loading">⏳ Loading…</div></div>
+
+    <footer>
+      Ranks use each participant's best submission; ties share a rank. Data:
+      <a href="leaderboard.csv">leaderboard.csv</a> (source of truth, updated automatically by CI).
+    </footer>
+  </div>
+  <script src="leaderboard.js"></script>
+</body>
+</html>

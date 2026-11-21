@@ -1,0 +1,10 @@
+{
+  "model_type": "baseline",
+  "architecture": "TinyUNet-b16",
+  "params": 1942289,
+  "llm": "",
+  "seed": 25,
+  "n_tuning_runs": 1,
+  "train_minutes_total": 48.6,
+  "hardware": "Intel64 Family 6 Model 78 Stepping 3, GenuineIntel | 4 threads | cpu"
+}

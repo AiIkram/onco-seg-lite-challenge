@@ -1,0 +1,2 @@
+team,score,iou,lesion_dice,specificity,model_type,architecture,params,llm,date,run_id
+organiser-baseline,0.7534,0.6925,0.7252,0.8889,baseline,TinyUNet-b16,1942289,,2026-11-21,baseline
